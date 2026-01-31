@@ -1117,24 +1117,77 @@ function drawUfo(u) {
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 1.5;
   const s = u.scale;
-  ctx.beginPath();
-  ctx.moveTo(u.x - 20 * s, u.y);
-  ctx.lineTo(u.x - 8 * s, u.y - 8 * s);
-  ctx.lineTo(u.x + 8 * s, u.y - 8 * s);
-  ctx.lineTo(u.x + 20 * s, u.y);
-  ctx.closePath(); ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(u.x - 20 * s, u.y);
-  ctx.lineTo(u.x - 8 * s, u.y + 8 * s);
-  ctx.lineTo(u.x + 8 * s, u.y + 8 * s);
-  ctx.lineTo(u.x + 20 * s, u.y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(u.x - 4 * s, u.y - 8 * s);
-  ctx.lineTo(u.x - 2 * s, u.y - 14 * s);
-  ctx.lineTo(u.x + 2 * s, u.y - 14 * s);
-  ctx.lineTo(u.x + 4 * s, u.y - 8 * s);
-  ctx.stroke();
+  const x = u.x;
+  const y = u.y;
+  const r = 20 * s;
+
+  if (theme === 'starwars') {
+    // Death Star
+    // Main sphere outline
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Equatorial trench line
+    ctx.beginPath();
+    ctx.moveTo(x - r, y);
+    ctx.lineTo(x + r, y);
+    ctx.stroke();
+
+    // Superlaser dish (concave circle in upper-left quadrant)
+    const dishX = x - r * 0.25;
+    const dishY = y - r * 0.35;
+    const dishR = r * 0.3;
+    ctx.beginPath();
+    ctx.arc(dishX, dishY, dishR, 0, Math.PI * 2);
+    ctx.stroke();
+    // Dish focus point
+    ctx.beginPath();
+    ctx.arc(dishX, dishY, dishR * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Surface detail: upper latitude line
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    const latW1 = r * 0.92;
+    ctx.moveTo(x - latW1, y - r * 0.2);
+    ctx.quadraticCurveTo(x, y - r * 0.35, x + latW1, y - r * 0.2);
+    ctx.stroke();
+
+    // Lower latitude line
+    ctx.beginPath();
+    const latW2 = r * 0.92;
+    ctx.moveTo(x - latW2, y + r * 0.25);
+    ctx.quadraticCurveTo(x, y + r * 0.4, x + latW2, y + r * 0.25);
+    ctx.stroke();
+
+    // Vertical meridian line (subtle curve)
+    ctx.beginPath();
+    ctx.moveTo(x, y - r);
+    ctx.quadraticCurveTo(x + r * 0.1, y, x, y + r);
+    ctx.stroke();
+
+  } else {
+    // Classic flying saucer
+    ctx.beginPath();
+    ctx.moveTo(x - r, y);
+    ctx.lineTo(x - 8 * s, y - 8 * s);
+    ctx.lineTo(x + 8 * s, y - 8 * s);
+    ctx.lineTo(x + r, y);
+    ctx.closePath(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - r, y);
+    ctx.lineTo(x - 8 * s, y + 8 * s);
+    ctx.lineTo(x + 8 * s, y + 8 * s);
+    ctx.lineTo(x + r, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - 4 * s, y - 8 * s);
+    ctx.lineTo(x - 2 * s, y - 14 * s);
+    ctx.lineTo(x + 2 * s, y - 14 * s);
+    ctx.lineTo(x + 4 * s, y - 8 * s);
+    ctx.stroke();
+  }
 }
 
 function drawBullet(b) {
