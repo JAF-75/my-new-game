@@ -2,16 +2,85 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Asteroids</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-  canvas { display: block; }
+  body {
+    background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh;
+    user-select: none; -webkit-user-select: none; overscroll-behavior: none;
+  }
+  canvas { display: block; touch-action: none; position: fixed; top: 0; left: 0; }
+
+  /* Touch controls */
+  .touch-btn {
+    display: none;
+    position: fixed;
+    z-index: 10;
+    border: 2px solid rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
+    font-family: "Courier New", monospace;
+    font-weight: bold;
+    text-align: center;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  .touch-btn:active { background: rgba(255,255,255,0.25); }
+
+  .touch-visible .touch-btn.game-btn { display: flex; align-items: center; justify-content: center; }
+  .touch-visible.state-menu .touch-btn.menu-btn { display: flex; align-items: center; justify-content: center; }
+  .touch-visible.state-gameover .touch-btn.gameover-btn { display: flex; align-items: center; justify-content: center; }
+  .touch-visible.state-menu .touch-btn.game-btn { display: none; }
+  .touch-visible.state-gameover .touch-btn.game-btn { display: none; }
+
+  /* Game control buttons */
+  #btn-left, #btn-right {
+    bottom: 30px; width: 70px; height: 70px; border-radius: 50%; font-size: 24px;
+  }
+  #btn-left { left: 20px; }
+  #btn-right { left: 100px; }
+  #btn-thrust {
+    bottom: 110px; left: 45px; width: 80px; height: 56px; border-radius: 12px; font-size: 14px;
+  }
+  #btn-fire {
+    bottom: 30px; right: 20px; width: 90px; height: 90px; border-radius: 50%; font-size: 16px;
+    border-color: rgba(255,255,255,0.6);
+  }
+  #btn-hyper {
+    bottom: 130px; right: 30px; width: 70px; height: 50px; border-radius: 12px; font-size: 11px;
+  }
+
+  /* Menu buttons */
+  #btn-classic, #btn-starwars {
+    width: 260px; height: 52px; border-radius: 10px; font-size: 18px; left: 50%; transform: translateX(-50%);
+  }
+  #btn-classic { top: calc(50% + 40px); }
+  #btn-starwars { top: calc(50% + 100px); }
+
+  /* Game over button */
+  #btn-enter {
+    width: 280px; height: 52px; border-radius: 10px; font-size: 16px;
+    left: 50%; transform: translateX(-50%); top: calc(50% + 50px);
+  }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+
+<!-- Touch controls (shown only on touch devices) -->
+<button id="btn-left" class="touch-btn game-btn">&larr;</button>
+<button id="btn-right" class="touch-btn game-btn">&rarr;</button>
+<button id="btn-thrust" class="touch-btn game-btn">THRUST</button>
+<button id="btn-fire" class="touch-btn game-btn">FIRE</button>
+<button id="btn-hyper" class="touch-btn game-btn">HYPER</button>
+
+<button id="btn-classic" class="touch-btn menu-btn">1 CLASSIC 1979</button>
+<button id="btn-starwars" class="touch-btn menu-btn">2 STAR WARS</button>
+
+<button id="btn-enter" class="touch-btn gameover-btn">CONTINUE</button>
+
 <script>
 // ============================================================
 // ASTEROIDS - 1979 Arcade Clone (Classic + Star Wars Theme)
@@ -19,6 +88,8 @@
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
 let WIDTH = window.innerWidth;
 let HEIGHT = window.innerHeight;
@@ -567,6 +638,82 @@ window.addEventListener('keyup', e => { keys[e.code] = false; });
 function consumeKey(code) {
   if (keyJustPressed[code]) { keyJustPressed[code] = false; return true; }
   return false;
+}
+
+// ============================================================
+// TOUCH CONTROLS
+// ============================================================
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+if (isTouchDevice) {
+  document.body.classList.add('touch-visible', 'state-menu');
+
+  const touchMap = {
+    'btn-left':    'ArrowLeft',
+    'btn-right':   'ArrowRight',
+    'btn-thrust':  'ArrowUp',
+    'btn-fire':    'Space',
+  };
+
+  for (const [btnId, keyCode] of Object.entries(touchMap)) {
+    const el = document.getElementById(btnId);
+    el.addEventListener('touchstart', e => {
+      e.preventDefault();
+      keys[keyCode] = true;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }, { passive: false });
+    el.addEventListener('touchend', e => {
+      e.preventDefault();
+      keys[keyCode] = false;
+    }, { passive: false });
+    el.addEventListener('touchcancel', e => {
+      e.preventDefault();
+      keys[keyCode] = false;
+    }, { passive: false });
+  }
+
+  // Hyperspace — uses keyJustPressed
+  const btnHyper = document.getElementById('btn-hyper');
+  btnHyper.addEventListener('touchstart', e => {
+    e.preventDefault();
+    keys['KeyH'] = true;
+    keyJustPressed['KeyH'] = true;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }, { passive: false });
+  btnHyper.addEventListener('touchend', e => { e.preventDefault(); keys['KeyH'] = false; }, { passive: false });
+  btnHyper.addEventListener('touchcancel', e => { e.preventDefault(); keys['KeyH'] = false; }, { passive: false });
+
+  // Menu buttons
+  document.getElementById('btn-classic').addEventListener('touchstart', e => {
+    e.preventDefault();
+    keyJustPressed['Digit1'] = true;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }, { passive: false });
+  document.getElementById('btn-starwars').addEventListener('touchstart', e => {
+    e.preventDefault();
+    keyJustPressed['Digit2'] = true;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }, { passive: false });
+
+  // Game over continue button
+  document.getElementById('btn-enter').addEventListener('touchstart', e => {
+    e.preventDefault();
+    keyJustPressed['Enter'] = true;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }, { passive: false });
+}
+
+function updateTouchUI() {
+  if (!isTouchDevice) return;
+  document.body.classList.remove('state-menu', 'state-playing', 'state-gameover');
+  document.body.classList.add('state-' + state);
+  // Only show continue button after the game-over delay
+  const btnEnter = document.getElementById('btn-enter');
+  if (state === 'gameover' && gameOverTimer <= 0) {
+    btnEnter.style.removeProperty('display');
+  } else if (state === 'gameover') {
+    btnEnter.style.display = 'none';
+  }
 }
 
 // ============================================================
@@ -1281,6 +1428,7 @@ function drawMenu() {
 
   // Title
   drawText('ASTEROIDS', WIDTH / 2, HEIGHT / 2 - 100, 64);
+  drawText('Made by John Fulton', WIDTH / 2, HEIGHT / 2 - 65, 18);
 
   // High score
   ctx.font = '18px "Courier New", monospace';
@@ -1289,25 +1437,27 @@ function drawMenu() {
   ctx.fillText('HIGH SCORE  ' + highScore.toString().padStart(2, '0'), WIDTH / 2, 30);
 
   // Mode selection
-  drawText('SELECT MODE', WIDTH / 2, HEIGHT / 2 - 30, 22);
+  drawText('SELECT MODE', WIDTH / 2, HEIGHT / 2 + 5, 22);
 
-  if (flickerOn) {
-    drawText('PRESS 1 FOR CLASSIC 1979', WIDTH / 2, HEIGHT / 2 + 20, 20);
-    drawText('PRESS 2 FOR STAR WARS', WIDTH / 2, HEIGHT / 2 + 55, 20);
+  if (!isTouchDevice && flickerOn) {
+    drawText('PRESS 1 FOR CLASSIC 1979', WIDTH / 2, HEIGHT / 2 + 55, 20);
+    drawText('PRESS 2 FOR STAR WARS', WIDTH / 2, HEIGHT / 2 + 90, 20);
   }
 
   // Draw a preview ship for each mode
   // Classic triangle on the left
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 1.5;
-  drawPoly(CLASSIC_SHIP, WIDTH / 2 - 180, HEIGHT / 2 + 37, 0, 1.2, true);
+  drawPoly(CLASSIC_SHIP, WIDTH / 2 - 180, HEIGHT / 2 + 72, 0, 1.2, true);
 
   // Falcon on the right
-  drawPoly(FALCON_SHIP, WIDTH / 2 + 160, HEIGHT / 2 + 37, 0, 1.2, true);
+  drawPoly(FALCON_SHIP, WIDTH / 2 + 160, HEIGHT / 2 + 72, 0, 1.2, true);
 
-  // Controls
-  drawText('CONTROLS:', WIDTH / 2, HEIGHT / 2 + 120, 16);
-  drawText('ARROWS = ROTATE/THRUST    SPACE = FIRE    H = HYPERSPACE', WIDTH / 2, HEIGHT / 2 + 145, 14);
+  if (!isTouchDevice) {
+    // Controls hint (keyboard only)
+    drawText('CONTROLS:', WIDTH / 2, HEIGHT / 2 + 155, 16);
+    drawText('ARROWS = ROTATE/THRUST    SPACE = FIRE    H = HYPERSPACE', WIDTH / 2, HEIGHT / 2 + 180, 14);
+  }
 }
 
 // ============================================================
@@ -1337,7 +1487,7 @@ function drawGameOver() {
   for (const p of particles) drawParticle(p);
   drawHUD();
   drawText('GAME OVER', WIDTH / 2, HEIGHT / 2, 48);
-  if (gameOverTimer <= 0 && flickerOn) {
+  if (gameOverTimer <= 0 && flickerOn && !isTouchDevice) {
     drawText('PRESS ENTER TO CONTINUE', WIDTH / 2, HEIGHT / 2 + 50, 18);
   }
 }
@@ -1356,6 +1506,8 @@ function gameLoop(timestamp) {
 
   flickerTimer += dt;
   if (flickerTimer > 0.5) { flickerTimer -= 0.5; flickerOn = !flickerOn; }
+
+  updateTouchUI();
 
   switch (state) {
     case 'menu':
